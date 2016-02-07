@@ -1,0 +1,125 @@
+##Reproducible Research Peer Assignment1
+
+echo = TRUE
+
+##load all packages used in this exploratory analysis
+library(knitr)
+library(datasets)
+install.packages("devtools")  # so we can install from GitHub
+devtools::install_github("ropensci/plotly")
+
+##Read the dataset "activity.csv"
+
+par(mar=c(1,1,1,1))
+if(!file.exists("repdata%2Fdata%2Factivity.zip")) {
+  temp <- tempfile()
+  download.file("http://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",temp)
+  file <- unzip(temp)
+  unlink(temp)
+}
+activity <- read.csv("activity.csv")
+
+##Calculate the total number of steps taken per day(Calculate mean)
+
+stepsPerDay <- aggregate(steps ~ date,activity,sum)
+stepsPerDay
+
+##Show the Histogram of the Mean value of the steps taken per day
+
+hist(stepsPerDay$steps,main = "Number Of Steps Taken Per Day",col = "green", xlab = "steps")
+
+##Calculate and report the mean and median of the total number of steps taken per day
+
+stepsmean <- mean(stepsPerDay$steps)
+stepsmedian <- median(stepsPerDay$steps)
+stepsmean
+stepsmedian
+
+##The Mean of the total number of steps taken per day is 10766.1886792453
+##The Median number of steps taken per day is 10765
+
+## What is the average daily activity pattern?
+## Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the ##average number of steps taken, averaged across all days (y-axis)
+totalstepsByInterval <- aggregate(steps ~ interval,data = activity,mean, na.rm = TRUE)
+head(totalstepsByInterval)
+plot(steps ~ interval, data = totalstepsByInterval,col="blue", type = "l",xlab="Interval",ylab ="Number of Steps",main="Average Number of Steps per Day by Interval")
+
+## Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+maxSteps <- totalstepsByInterval[which.max(totalstepsByInterval$steps), ]$interval
+maxSteps
+
+## In every 5-minute interval, on average across all the days in the dataset,the maximum number of steps taken are 835")
+
+##Calculate and report the total number of missing values in the dataset (i.e. the total ##number of rows with NAs)
+
+missingNAs <- activity[!complete.cases(activity),]
+nrow(missingNAs)
+
+## "Total number of missing values in the dataset are 2304"
+
+
+##Devise a strategy for filling in all of the missing values in the dataset. The strategy ##does not need to be sophisticated. For example, you could use the mean/median for that ##day, ##or the mean for that 5-minute interval, etc
+##Impute data to replace NA's with mean value
+##make fuction name Mean Intervalsteps
+
+interval2steps <- function(interval) {
+totalstepsByInterval[totalstepsByInterval$interval == interval, ]$steps
+}
+
+##Create a new dataset that is equal to the original dataset but with the missing data ##filled in.
+
+NAactivityFilled <- activity  # Make a new dataset with the original data
+count = 0  # Count the number of data filled in
+for (i in 1:nrow(NAactivityFilled)) {
+if (is.na(NAactivityFilled[i, ]$steps)) {
+NAactivityFilled[i, ]$steps <- interval2steps(NAactivityFilled[i, ]$interval)
+count = count + 1
+}
+}
+cat("Total ", count, "NA values were filled.\n\r")
+
+##Make a histogram of the total number of steps taken each day and Calculate and report the ##mean and median total number of steps taken per day. Do these values differ from the ##estimates from the first part of the assignment? What is the impact of imputing 
+
+totalNumsteps <- aggregate(steps ~ date, data = NAactivityFilled,sum) 
+totalNumsteps
+hist(totalNumsteps$steps,col = "red")
+mean(totalNumsteps$steps)
+median(totalNumsteps$steps)
+
+##The avergage mean of the steps taken per day before imputing the activity data and after ##replacing  NA's  of the same with the mean value, shows very less impact on its average ##mean.The differnece in mean value is negligible or very less.
+
+##Are there differences in activity patterns between weekdays and weekends?
+##For this part the weekdays() function may be of some help here. Use the dataset with the ##filled-in missing values for this part.
+##convert date from string to Date class
+NAactivityFilled$date <- as.Date(NAactivityFilled$date, "%Y-%m-%d")
+
+##add a new column indicating day of the week 
+NAactivityFilled$day <- weekdays(NAactivityFilled$date)
+
+##add a new column called day type and initialize to weekday
+NAactivityFilled$day_type <- c("weekday")
+### If day is Saturday or Sunday, make day_type as weekend
+for (i in 1:nrow(NAactivityFilled)){
+  if (NAactivityFilled$day[i] == "Saturday" || NAactivityFilled$day[i] == "Sunday"){
+    NAactivityFilled$day_type[i] <- "weekend"
+  }
+}
+
+## convert day_time from character to factor
+NAactivityFilled$day_type <- as.factor(NAactivityFilled$day_type)
+
+## aggregate steps as interval to get average number of steps in an interval across all days
+imputed_table <- aggregate(steps ~ interval + day_type,NAactivityFilled,mean)
+
+library(ggplot2)
+qplot(interval,steps,data=imputed_table,geom=c("line"),xlab="Interval", 
+      ylab="Number of steps",main="") +facet_wrap(~ day_type, ncol=1)
+
+
+
+
+
+
+
+
