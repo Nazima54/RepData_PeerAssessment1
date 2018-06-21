@@ -1,0 +1,5 @@
+##load all packages used in this exploratory analysis
+library(knitr)
+library(datasets)
+install.packages("devtools")  # so we can install from GitHub
+devtools::install_github("ropensci/plotly")
